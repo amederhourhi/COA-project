@@ -1,49 +1,40 @@
 // ============================================================
 // Module      : datapath
-// Description : Complete datapath of the Mano computer.
-//               Instantiates registers, memory, bus, ALU and E.
+// Description : Complete datapath with proper ALU → AC path
 // ============================================================
 
 module datapath (
     input  wire        clk,
     input  wire        rst,
 
-    // ========== Control signals from Control Unit ==========
-    // Register controls
+    // Control signals from Control Unit
     input  wire        AR_Load, AR_Inc, AR_Clear,
     input  wire        PC_Load, PC_Inc, PC_Clear,
     input  wire        DR_Load, DR_Inc, DR_Clear,
     input  wire        AC_Load, AC_Inc, AC_Clear,
     input  wire        IR_Load,
     input  wire        TR_Load,
-
-    // Memory
-    input  wire        Mem_Read,           // (kept for clarity, read is async)
     input  wire        Mem_Write,
-
-    // Bus select
     input  wire [2:0]  Bus_Select,
 
-    // ALU operations
     input  wire        ALU_Add,
     input  wire        ALU_And,
-    input  wire        ALU_DR,             // AC ← DR
+    input  wire        ALU_DR,
     input  wire        ALU_Comp,
     input  wire        ALU_Shr,
     input  wire        ALU_Shl,
 
-    // E controls
     input  wire        E_Load,
     input  wire        E_Clear,
     input  wire        E_Comp,
 
-    // ========== Status outputs to Control Unit ==========
-    output wire [15:0] IR_out,             // Needed for opcode decoding / mapping
+    // Status outputs
+    output wire [15:0] IR_out,
     output wire        E_out,
-    output wire        AC_zero,            // AC == 0
-    output wire        AC_sign,            // AC[15]
+    output wire        AC_zero,
+    output wire        AC_sign,
 
-    // Optional debug outputs (very useful later)
+    // Debug outputs
     output wire [15:0] AC_out,
     output wire [15:0] DR_out,
     output wire [15:0] PC_out,
@@ -55,8 +46,16 @@ module datapath (
     wire [15:0] mem_out;
     wire [15:0] alu_result;
     wire        alu_e_out;
+    wire [15:0] ac_data_in;
 
-    // ---------------------- Registers ----------------------
+    // ---------- AC input multiplexer ----------
+    // When any ALU operation is active → take ALU result
+    // Otherwise → take common bus
+    assign ac_data_in = (ALU_Add | ALU_And | ALU_DR | ALU_Comp | ALU_Shr | ALU_Shl) 
+                        ? alu_result 
+                        : bus_out;
+
+    // ---------- Registers ----------
     registers regs (
         .clk(clk),
         .rst(rst),
@@ -69,16 +68,17 @@ module datapath (
         .TR_Load(TR_Load),
 
         .bus_in(bus_out),
+        .ac_data_in(ac_data_in),
 
         .AR_out(AR_out),
         .PC_out(PC_out),
         .DR_out(DR_out),
         .AC_out(AC_out),
         .IR_out(IR_out),
-        .TR_out()                 // TR not needed outside for now
+        .TR_out()
     );
 
-    // ---------------------- Memory -------------------------
+    // ---------- Memory ----------
     memory mem (
         .clk(clk),
         .write_enable(Mem_Write),
@@ -87,7 +87,7 @@ module datapath (
         .data_out(mem_out)
     );
 
-    // ---------------------- Common Bus ---------------------
+    // ---------- Common Bus ----------
     bus common_bus (
         .select(Bus_Select),
         .ar_in(AR_out),
@@ -95,34 +95,27 @@ module datapath (
         .dr_in(DR_out),
         .ac_in(AC_out),
         .ir_in(IR_out),
-        .tr_in(16'b0),            // TR not used on bus yet
+        .tr_in(16'b0),
         .mem_in(mem_out),
         .bus_out(bus_out)
     );
 
-    // ---------------------- ALU ----------------------------
+    // ---------- ALU ----------
     alu alu_unit (
         .ac_in(AC_out),
         .dr_in(DR_out),
         .e_in(E_out),
-
         .op_add(ALU_Add),
         .op_and(ALU_And),
         .op_dr(ALU_DR),
         .op_comp(ALU_Comp),
         .op_shr(ALU_Shr),
         .op_shl(ALU_Shl),
-
         .result(alu_result),
         .e_out(alu_e_out)
     );
 
-    // Note: AC is loaded from ALU result when AC_Load is asserted.
-    // We need a small mux for AC input. For cleanliness we currently
-    // feed bus_out to registers. We will refine AC source in next iteration
-    // if needed (many educational designs load AC from ALU via bus or dedicated path).
-
-    // ---------------------- E Flip-Flop --------------------
+    // ---------- E Flip-Flop ----------
     e_ff e_register (
         .clk(clk),
         .rst(rst),
