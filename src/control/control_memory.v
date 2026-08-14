@@ -59,6 +59,11 @@ module control_memory (
         // ==================== BUN ====================
         // 0x30: Bus ← AR, PC ← Bus, JUMP 0
         rom[8'h30] = 32'b0010_0000_0000_0100_0000_0001_0000_0000; // PC_Load + Bus=AR + JUMP
+
+        // ==================== HLT (simple version) ====================
+        // We map register-reference (opcode 111) starting address to 0x48
+        // For now just a halt loop
+        rom[8'h48] = 32'b0000_0000_0000_0000_0000_0001_0100_1000; // JUMP to itself (halt)
     end
 
     always @(*) begin

@@ -51,8 +51,9 @@ module tb_mano_computer;
         uut.dp.mem.mem[0] = 16'h2005;   // LDA 5
         uut.dp.mem.mem[1] = 16'h1006;   // ADD 6
         uut.dp.mem.mem[2] = 16'h3007;   // STA 7
-        uut.dp.mem.mem[5] = 16'h000A;   // Data 10
-        uut.dp.mem.mem[6] = 16'h0005;   // Data 5
+        uut.dp.mem.mem[3] = 16'h7000;   // HLT (opcode 111, bit pattern for HLT)
+        uut.dp.mem.mem[5] = 16'h000A;
+        uut.dp.mem.mem[6] = 16'h0005;
     end
 
     // Stimulus
@@ -72,11 +73,11 @@ module tb_mano_computer;
         $finish;
     end
 
-    // Monitor
-    always @(posedge clk) begin
+        always @(posedge clk) begin
         if (!rst) begin
-            $display("T=%0t | CAR=%h | PC=%h | IR=%h | AC=%h | Micro=%h",
-                     $time, CAR, PC, IR, AC, Microinstruction);
+            $display("T=%0t | CAR=%h | PC=%h | IR=%h | AC=%h | Micro=%h | AC_Load=%b ALU_Add=%b ALU_DR=%b",
+                     $time, CAR, PC, IR, AC, Microinstruction,
+                     uut.cu.AC_Load, uut.cu.ALU_Add, uut.cu.ALU_DR);
         end
     end
 

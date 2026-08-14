@@ -79,7 +79,6 @@ module mano_computer (
         .IR_Load(IR_Load),
         .TR_Load(TR_Load),
 
-        .Mem_Read(1'b0),               // currently unused (async read)
         .Mem_Write(Mem_Write),
         .Bus_Select(Bus_Select),
 
