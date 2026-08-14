@@ -86,37 +86,37 @@ module control_unit (
         .next_car(next_car)
     );
 
-    // Control Signal Decoding
+    // Control Signal Decoding (final clean version)
     
-    assign AR_Load    = ctrl_signals[15];
-    assign AR_Inc     = ctrl_signals[14];
-    assign PC_Load    = ctrl_signals[13];
-    assign PC_Inc     = ctrl_signals[12];
-    assign DR_Load    = ctrl_signals[11];
-    assign AC_Load    = ctrl_signals[10];
-    assign IR_Load    = ctrl_signals[9];
-    assign Mem_Write  = ctrl_signals[8];
-    assign ALU_Add    = ctrl_signals[7];
-    assign ALU_And    = ctrl_signals[6];
-    assign ALU_DR     = ctrl_signals[5];
+    assign AR_Load   = ctrl_signals[15];
+    assign AR_Inc    = ctrl_signals[14];
+    assign PC_Load   = ctrl_signals[13];
+    assign PC_Inc    = ctrl_signals[12];
+    assign DR_Load   = ctrl_signals[11];
+    assign AC_Load   = ctrl_signals[10];
+    assign IR_Load   = ctrl_signals[9];
+    assign Mem_Write = ctrl_signals[8];
+    assign ALU_Add   = ctrl_signals[7];
+    assign ALU_And   = ctrl_signals[6];
+    assign ALU_DR    = ctrl_signals[5];
 
-    // Bus Select (3 bits)
-    assign Bus_Select = ctrl_signals[4:2];     // bits 20-18 of microinstruction
+    // Bus Select
+    assign Bus_Select = ctrl_signals[4:2];
 
-    // Currently unused
-    assign AR_Clear   = 1'b0;
-    assign PC_Clear   = 1'b0;
-    assign DR_Inc     = 1'b0;
-    assign DR_Clear   = 1'b0;
-    assign AC_Inc     = 1'b0;
-    assign AC_Clear   = 1'b0;
-    assign TR_Load    = 1'b0;
-    assign ALU_Comp   = 1'b0;
-    assign ALU_Shr    = 1'b0;
-    assign ALU_Shl    = 1'b0;
-    assign E_Load     = 1'b0;
-    assign E_Clear    = 1'b0;
-    assign E_Comp     = 1'b0;
+    // Unused for now
+    assign AR_Clear  = 1'b0;
+    assign PC_Clear  = 1'b0;
+    assign DR_Inc    = 1'b0;
+    assign DR_Clear  = 1'b0;
+    assign AC_Inc    = 1'b0;
+    assign AC_Clear  = 1'b0;
+    assign TR_Load   = 1'b0;
+    assign ALU_Comp  = 1'b0;
+    assign ALU_Shr   = 1'b0;
+    assign ALU_Shl   = 1'b0;
+    assign E_Load    = 1'b0;
+    assign E_Clear   = 1'b0;
+    assign E_Comp    = 1'b0;
 
     // Debug
     assign car_out = car_current;
