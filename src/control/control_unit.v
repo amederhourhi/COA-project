@@ -1,7 +1,7 @@
 // ============================================================
 // Module      : control_unit
-// Description : Complete Microprogrammed Control Unit
-//               for the Mano Computer.
+// Description : Microprogrammed Control Unit with proper
+//               Microinstruction Register (fixes timing)
 // ============================================================
 
 module control_unit (
@@ -43,16 +43,17 @@ module control_unit (
     // Internal signals
     wire [7:0]  car_current;
     wire [7:0]  next_car;
-    wire [31:0] microinstruction;
+    wire [31:0] rom_out;               // Direct from Control Memory
+    wire [31:0] microinstruction;      // Registered version (from µIR)
     wire [7:0]  map_address;
 
-    // Split microinstruction fields
+    // Split the REGISTERED microinstruction
     wire [15:0] ctrl_signals = microinstruction[31:16];
     wire [3:0]  cond_field   = microinstruction[15:12];
     wire [3:0]  seq_field    = microinstruction[11:8];
     wire [7:0]  addr_field   = microinstruction[7:0];
 
-    // CAR
+    // ---------------------- CAR ----------------------
     car car_reg (
         .clk(clk),
         .rst(rst),
@@ -61,19 +62,28 @@ module control_unit (
         .q_out(car_current)
     );
 
-    // Control Memory
+    // ---------------------- Control Memory -----------
     control_memory cm (
         .address(car_current),
-        .microinstruction(microinstruction)
+        .microinstruction(rom_out)
     );
 
-    // Mapping Logic
+    // ---------------------- Microinstruction Register (THE FIX)
+    microinstruction_register uir (
+        .clk(clk),
+        .rst(rst),
+        .load(1'b1),                   // Always load
+        .d_in(rom_out),
+        .q_out(microinstruction)
+    );
+
+    // ---------------------- Mapping Logic ------------
     mapping_logic mapper (
         .opcode(IR[14:12]),
         .micro_address(map_address)
     );
 
-    // Next Address Logic
+    // ---------------------- Next Address Logic -------
     next_address_logic next_logic (
         .seq(seq_field),
         .cond_field(cond_field),
@@ -86,8 +96,9 @@ module control_unit (
         .next_car(next_car)
     );
 
-    // Control Signal Decoding (final clean version)
-    
+    // =====================================================
+    // Control Signal Decoding (from registered µIR)
+    // =====================================================
     assign AR_Load   = ctrl_signals[15];
     assign AR_Inc    = ctrl_signals[14];
     assign PC_Load   = ctrl_signals[13];
@@ -100,10 +111,9 @@ module control_unit (
     assign ALU_And   = ctrl_signals[6];
     assign ALU_DR    = ctrl_signals[5];
 
-    // Bus Select
     assign Bus_Select = ctrl_signals[4:2];
 
-    // Unused for now
+    // Unused signals
     assign AR_Clear  = 1'b0;
     assign PC_Clear  = 1'b0;
     assign DR_Inc    = 1'b0;
