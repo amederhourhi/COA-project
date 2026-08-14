@@ -1,22 +1,20 @@
 // ============================================================
 // Testbench   : tb_mano_computer
-// Description : Basic testbench to verify Fetch cycle
+// Description : Testbench with memory initialization
 // ============================================================
 
 `timescale 1ns / 1ps
 
 module tb_mano_computer;
 
-    // Clock and reset
     reg clk;
     reg rst;
 
-    // Outputs from the computer
     wire [15:0] AC, PC, IR;
     wire [7:0]  CAR;
     wire [31:0] Microinstruction;
 
-    // Instantiate the Mano Computer
+    // Instantiate the computer
     mano_computer uut (
         .clk(clk),
         .rst(rst),
@@ -27,35 +25,58 @@ module tb_mano_computer;
         .Microinstruction(Microinstruction)
     );
 
-    // Clock generation (10 ns period = 100 MHz)
+    // Clock generation
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
     end
 
+    // ---------- Memory Initialization ----------
+    // We force some values into the memory inside the datapath
+    // for a simple test program.
+    initial begin
+        // Wait a moment for the design to elaborate
+        #1;
+
+        // Simple test program:
+        // Address 0: LDA 5     (opcode 010, address 005) → 0x2005
+        // Address 1: ADD 6     (opcode 001, address 006) → 0x1006
+        // Address 2: STA 7     (opcode 011, address 007) → 0x3007
+        // Address 3: HLT       (we will treat later)
+        // Data:
+        // Address 5: 000A
+        // Address 6: 0005
+        // Address 7: will receive result
+
+        uut.dp.mem.mem[0] = 16'h2005;   // LDA 5
+        uut.dp.mem.mem[1] = 16'h1006;   // ADD 6
+        uut.dp.mem.mem[2] = 16'h3007;   // STA 7
+        uut.dp.mem.mem[5] = 16'h000A;   // Data 10
+        uut.dp.mem.mem[6] = 16'h0005;   // Data 5
+    end
+
     // Stimulus
     initial begin
-        // Initialize
         rst = 1;
-        #20;                    // Hold reset for 20 ns
+        #20;
         rst = 0;
 
-        // Let it run for some cycles
-        #200;
+        // Run long enough to see several instructions
+        #500;
 
-        $display("=== Simulation finished ===");
+        $display("\n=== Simulation finished ===");
         $display("Final PC  = %h", PC);
-        $display("Final CAR = %h", CAR);
+        $display("Final AC  = %h", AC);
         $display("Final IR  = %h", IR);
-
+        $display("Final CAR = %h", CAR);
         $finish;
     end
 
-    // Optional: Monitor important signals every clock
+    // Monitor
     always @(posedge clk) begin
         if (!rst) begin
-            $display("Time=%0t | CAR=%h | PC=%h | IR=%h | Microinstr=%h",
-                     $time, CAR, PC, IR, Microinstruction);
+            $display("T=%0t | CAR=%h | PC=%h | IR=%h | AC=%h | Micro=%h",
+                     $time, CAR, PC, IR, AC, Microinstruction);
         end
     end
 
