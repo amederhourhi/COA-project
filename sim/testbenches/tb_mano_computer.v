@@ -62,7 +62,7 @@ module tb_mano_computer;
         #20;
         rst = 0;
 
-        // Run long enough to see several instructions
+                // Run long enough
         #500;
 
         $display("\n=== Simulation finished ===");
@@ -70,6 +70,7 @@ module tb_mano_computer;
         $display("Final AC  = %h", AC);
         $display("Final IR  = %h", IR);
         $display("Final CAR = %h", CAR);
+        $display("Memory[7] = %h  (should be 000F if STA worked)", uut.dp.mem.mem[7]);
         $finish;
     end
 
