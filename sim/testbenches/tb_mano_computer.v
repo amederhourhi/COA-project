@@ -48,15 +48,21 @@ module tb_mano_computer;
         // Address 6: 0005
         // Address 7: will receive result
 
-        // Test program: LDA + AND + STA + HLT
-        uut.dp.mem.mem[0] = 16'h2005;   // LDA 5
-        uut.dp.mem.mem[1] = 16'h0006;   // AND 6
-        uut.dp.mem.mem[2] = 16'h3007;   // STA 7
-        uut.dp.mem.mem[3] = 16'h7000;   // HLT
+                // Test program for BUN
+        // 0: LDA 5
+        // 1: BUN 3          ← should jump over address 2
+        // 2: LDA 6          ← this should be skipped
+        // 3: STA 7
+        // 4: HLT
 
-        uut.dp.mem.mem[5] = 16'h00FF;   // Data: 0000 0000 1111 1111
-        uut.dp.mem.mem[6] = 16'h0F0F;   // Data: 0000 1111 0000 1111
-        // Expected after AND: 0000 0000 0000 1111 = 000F
+        uut.dp.mem.mem[0] = 16'h2005;   // LDA 5
+        uut.dp.mem.mem[1] = 16'h4003;   // BUN 3
+        uut.dp.mem.mem[2] = 16'h2006;   // LDA 6  (should be skipped)
+        uut.dp.mem.mem[3] = 16'h3007;   // STA 7
+        uut.dp.mem.mem[4] = 16'h7000;   // HLT
+
+        uut.dp.mem.mem[5] = 16'h00AA;   // Data
+        uut.dp.mem.mem[6] = 16'h00BB;   // Data (should NOT be loaded)
     end
 
     // Stimulus
