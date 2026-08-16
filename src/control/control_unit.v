@@ -93,6 +93,7 @@ module control_unit (
         .AC_zero(AC_zero),
         .E(E),
         .AC_sign(AC_sign),
+        .I_bit(IR[15]),
         .next_car(next_car)
     );
 
