@@ -5,7 +5,9 @@
 //               Connects Datapath + Control Unit.
 // ============================================================
 
-module mano_computer (
+module mano_computer #(
+    parameter INIT_FILE = ""
+)(
     input  wire        clk,
     input  wire        rst,
 
@@ -68,7 +70,7 @@ module mano_computer (
     );
 
     // ---------------------- Datapath --------------------------
-    datapath dp (
+    datapath #(.INIT_FILE(INIT_FILE)) dp (
         .clk(clk),
         .rst(rst),
 

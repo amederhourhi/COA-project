@@ -9,6 +9,9 @@ module control_memory (
 );
 
     reg [31:0] rom [0:255];
+    integer i;      // Loop variable moved to module scope -- required by
+                    // strict Verilog-2001 tools; declaring it inside an
+                    // unnamed initial block only works under SystemVerilog.
 
     // Bit encoding (31→16):
     // 31 AR_Load | 30 AR_Inc | 29 PC_Load | 28 PC_Inc
@@ -17,7 +20,6 @@ module control_memory (
     // 20-18 Bus_Select (001=AR, 010=PC, 011=DR, 100=AC, 101=IR, 111=Mem)
 
     initial begin
-        integer i;
         for (i = 0; i < 256; i = i + 1)
             rom[i] = 32'h0000_0000;
 

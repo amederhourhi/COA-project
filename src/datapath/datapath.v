@@ -2,8 +2,9 @@
 // Module      : datapath
 // Description : Complete datapath with proper ALU → AC path
 // ============================================================
-
-module datapath (
+module datapath #(
+    parameter INIT_FILE = ""       // Passed down to memory for FPGA program loading
+)(
     input  wire        clk,
     input  wire        rst,
 
@@ -79,7 +80,7 @@ module datapath (
     );
 
     // ---------- Memory ----------
-    memory mem (
+    memory #(.INIT_FILE(INIT_FILE)) mem (
         .clk(clk),
         .write_enable(Mem_Write),
         .address(AR_out[11:0]),
