@@ -16,7 +16,7 @@
 // ============================================================
 
 module clk_divider #(
-    parameter integer DIVIDER_MAX = 24_999_999   // Tune this to change demo speed
+    parameter integer DIVIDER_MAX = 4   // Tune this to change demo speed
 )(
     input  wire clk_in,     // 100 MHz board clock
     input  wire rst,        // Synchronous reset
