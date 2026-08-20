@@ -42,14 +42,14 @@ reports/         Final academic report (PDF)
 
 ## Current Progress
 
-### Phase 0 – Project Setup & Design Documentation ✅
+### Project Setup & Design Documentation 
 - [x] Professional repository structure
 - [x] Architecture Decision Record (Horizontal microprogramming)
 - [x] Complete list of control signals extracted
 - [x] Final 32-bit microinstruction format defined
 - [x] Complete microprogram written (Fetch, Indirect, Memory-reference, Register-reference, I/O)
 
-### Phase 3 – Datapath Implementation ✅
+### Datapath Implementation 
 - [x] Generic register module
 - [x] All main registers (AR, PC, DR, AC, IR, TR)
 - [x] 4K × 16-bit memory, with FPGA-ready program loading (see below)
@@ -57,35 +57,31 @@ reports/         Final academic report (PDF)
 - [x] ALU + E flip-flop
 - [x] Complete Datapath top module
 
-### Phase 4 – Microprogrammed Control Unit ✅
+### Microprogrammed Control Unit 
 - [x] Control Memory (256 × 32-bit ROM)
 - [x] Control Address Register (CAR)
 - [x] Sequencing & Next-Address Logic (CONT / JUMP / JMPIF / MAP)
 - [x] Microinstruction Register
 - [x] Mapping Logic (opcode → microaddress)
-
-### Phase 5 – System Integration ✅
+      
+### System Integration 
 - [x] Top-level Mano Computer module (`mano_computer.v`)
 - [x] FPGA top-level wrapper (`fpga_top.v`) with reset synchronizer and clock divider
 
-### Phase 6 – Simulation & Verification ✅
+### Simulation & Verification 
 - [x] `tb_mano_computer.v` — instruction-level testbench (LDA / BUN / STA / HLT), values force-loaded into memory
 - [x] `tb_fpga_loading.v` — proves the hardware-style program loading path (`$readmemh`) produces identical, correct results with no manual memory writes
 - [x] Both testbenches verified: final `AC = 00AA`, `Memory[7] = 00AA`, control unit halts cleanly
 
-### Phase 7 – FPGA Implementation 🔄 In progress
+### FPGA Implementation
 - [x] Constraints (XDC) matching the actual top-level ports
 - [x] Hardware program loading via `fpga/rom/program.mem`, loaded into Block RAM at build time
 - [x] Clock divider for a human-visible demo speed (~2 Hz)
-- [ ] Vivado project created, synthesized, and implemented
-- [ ] Bitstream generated and programmed onto the Basys 3
-- [ ] Demo video / live demo recorded
+- [x] Vivado project created, synthesized, and implemented
+- [x] Bitstream generated and programmed onto the Basys 3
 
-### Phase 8 – Final Report & Delivery
+### Final Report & Delivery
 - [ ] Academic report (Courier New, 10pt)
-- [ ] Group meeting/communication records
-- [ ] Presentation prepared for Week 13
-
 ---
 
 ## Key Design Decisions
@@ -145,9 +141,3 @@ All engineering decisions and the complete microprogram are documented in `docs/
 
 ---
 
-## Next Steps
-
-1. Build the Vivado project and generate a working bitstream
-2. Program the Basys 3 and confirm the demo matches simulation
-3. Record the demo video / prepare the live demo
-4. Write the academic report and finalize team documentation
