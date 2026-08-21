@@ -1,6 +1,6 @@
 // ============================================================
 // Testbench   : tb_mano_computer
-// Description : Robust testbench with multiple test programs
+// Description : Incremental multi-instruction testbench
 // ============================================================
 
 `timescale 1ns / 1ps
@@ -25,56 +25,62 @@ module tb_mano_computer;
         .Microinstruction(Microinstruction)
     );
 
-    // Clock
+    // Clock Generation
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
     end
 
-    // ---------- Test Programs ----------
+    // Load Instructions into RAM
     initial begin
         #1;
 
         // ============================================
-        // Test 1: LDA + ADD + STA + HLT
-        // Expected: AC = 000F, mem[7] = 000F
+        // TEST 1: Direct Operations (LDA, AND, ADD, STA, HLT)
+        // Memory Addresses:
+        // 0x000: LDA 0x006  (AC <- M[6] = 0x000F)
+        // 0x001: AND 0x007  (AC <- AC & M[7] = 0x000F & 0x0007 = 0x0007)
+        // 0x002: ADD 0x008  (AC <- AC + M[8] = 0x0007 + 0x0002 = 0x0009)
+        // 0x003: STA 0x009  (M[9] <- AC = 0x0009)
+        // 0x004: HLT        (Jump to self at 0x48)
         // ============================================
-        uut.dp.mem.mem[0]  = 16'h2005;  // LDA 5
-        uut.dp.mem.mem[1]  = 16'h1006;  // ADD 6
-        uut.dp.mem.mem[2]  = 16'h3007;  // STA 7
-        uut.dp.mem.mem[3]  = 16'h7000;  // HLT
-        uut.dp.mem.mem[5]  = 16'h000A;
-        uut.dp.mem.mem[6]  = 16'h0005;
+        uut.dp.mem.mem[16'h000] = 16'h2006; // LDA 6
+        uut.dp.mem.mem[16'h001] = 16'h0007; // AND 7
+        uut.dp.mem.mem[16'h002] = 16'h1008; // ADD 8
+        uut.dp.mem.mem[16'h003] = 16'h3009; // STA 9
+        uut.dp.mem.mem[16'h004] = 16'h7000; // HLT / Reg-ref
 
-        // Clear result location
-        uut.dp.mem.mem[7]  = 16'h0000;
+        // Data operands
+        uut.dp.mem.mem[16'h006] = 16'h000F; // Data 1
+        uut.dp.mem.mem[16'h007] = 16'h0007; // Data 2
+        uut.dp.mem.mem[16'h008] = 16'h0002; // Data 3
+        uut.dp.mem.mem[16'h009] = 16'h0000; // Result destination
     end
 
-    // Stimulus
+    // Execution & Self-Checking Stimulus
     initial begin
         rst = 1;
         #20;
         rst = 0;
 
-        // Let the first program run
-        #600;
+        // Allow cycles for execution through HLT loop
+        #800;
 
         $display("\n========================================");
-        $display("TEST 1: LDA + ADD + STA + HLT");
-        $display("Final AC      = %h  (expected 000F)", AC);
-        $display("Memory[7]    = %h  (expected 000F)", uut.dp.mem.mem[7]);
-        $display("Final IR     = %h  (expected 7000)", IR);
+        $display("VERIFICATION RESULT FOR TEST 1");
+        $display("----------------------------------------");
+        $display("AC Output     : %h (Expected: 0009)", AC);
+        $display("Memory[0x009] : %h (Expected: 0009)", uut.dp.mem.mem[16'h009]);
+        $display("CAR Value     : %h (Expected: 48)", CAR);
+        
+        if (AC == 16'h0009 && uut.dp.mem.mem[16'h009] == 16'h0009 && CAR == 8'h48) begin
+            $display("STATUS        : >>> PASSED <<<");
+        end else begin
+            $display("STATUS        : >>> FAILED <<<");
+        end
         $display("========================================\n");
 
         $finish;
     end
-
-    // Optional monitor (comment out if too much output)
-    /*
-    always @(posedge clk) begin
-        if (!rst)
-            $display("T=%0t CAR=%h PC=%h IR=%h AC=%h", $time, CAR, PC, IR, AC);
-    end
-    */
 
 endmodule
