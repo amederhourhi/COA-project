@@ -1,0 +1,23 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  -i "../../../../../../../Projects/COA-project/fpga/rom" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/alu.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/bus.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/car.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/control_memory.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/control_unit.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/datapath.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/e_ff.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/top/mano_computer.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/mapping_logic.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/memory.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/microinstruction_register.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/control/next_address_logic.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/register.v" \
+"../../../../COA-proejct.srcs/sources_1/imports/src/datapath/registers.v" \
+"../../../../COA-proejct.srcs/sim_1/imports/testbenches/tb_mano_computer.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

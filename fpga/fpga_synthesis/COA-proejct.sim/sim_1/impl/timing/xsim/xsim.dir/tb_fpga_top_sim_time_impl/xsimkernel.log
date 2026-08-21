@@ -1,0 +1,7 @@
+Running: xsim.dir/tb_fpga_top_sim_time_impl/xsimk.exe -simmode gui -wdb tb_fpga_top_sim_time_impl.wdb -simrunnum 0 -socket 25376
+Design successfully loaded
+Design Loading Memory Usage: 59688 KB (Peak: 59688 KB)
+Design Loading CPU Usage: 124 ms
+Simulation completed
+Simulation Memory Usage: 75524 KB (Peak: 75524 KB)
+Simulation CPU Usage: 609 ms

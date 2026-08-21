@@ -1,0 +1,22 @@
+// ============================================================
+// File   : program.mem
+// Format : One 16-bit hex instruction/data value per line,
+//          loaded starting at memory address 0.
+//          Read by memory.v via $readmemh at synthesis time.
+//
+// Program (same one your testbench already runs):
+//   Addr 0: LDA 5   -> AC <= M[5]
+//   Addr 1: BUN 3   -> jump to address 3 (skips address 2)
+//   Addr 2: LDA 6   -> should NEVER execute (proves BUN works)
+//   Addr 3: STA 7   -> M[7] <= AC
+//   Addr 4: HLT     -> opcode 111, halts (loops on itself)
+//   Addr 5: 00AA    -> data operand for LDA
+//   Addr 6: 00BB    -> data operand that must NOT get loaded
+// ============================================================
+2005
+4003
+2006
+3007
+7000
+00AA
+00BB
