@@ -29,7 +29,25 @@ module mano_pipeline (
     reg [15:0] id_ex_ac;   
     reg [3:0]  id_ex_op;   
     reg [11:0] id_ex_addr; 
-    
+
+    // ========================================================
+    // HAZARD UNIT: DATA FORWARDING
+    // ========================================================
+    reg [15:0] next_ac; // Holds what the AC *will* be after Execute
+
+    // Combinatorial logic to calculate what the Execute stage is about to write
+    always @(*) begin
+        case (id_ex_op)
+            4'b0000: next_ac = id_ex_ac & data_in; // AND
+            4'b0001: next_ac = id_ex_ac + data_in; // ADD
+            4'b0010: next_ac = data_in;            // LDA
+            default: next_ac = ac;                 // No AC write, default to current AC
+        endcase
+    end
+
+    // ========================================================
+    // PIPELINE STAGE LOGIC (Synchronous)
+    // ========================================================
     always @(posedge clk) begin
         if (reset) begin
             pc            <= 12'b0; 
@@ -53,7 +71,10 @@ module mano_pipeline (
             // ------------------------------------------------
             // STAGE 2: DECODE
             // ------------------------------------------------
-            id_ex_ac     <= ac; 
+            // HAZARD AVOIDANCE: Pass the 'forwarded' AC value to the next stage 
+            // instead of the potentially stale 'ac' register.
+            id_ex_ac     <= next_ac; 
+            
             id_ex_op     <= if_id_ir[15:12]; 
             id_ex_addr   <= if_id_ir[11:0];
             data_addr    <= if_id_ir[11:0];
@@ -61,21 +82,17 @@ module mano_pipeline (
             
             // ------------------------------------------------
             // STAGE 3: EXECUTE
-            // Action: ALU operations and Writeback
             // ------------------------------------------------
-            data_write_en <= 1'b0; // Default to not writing to prevent data corruption
+            data_write_en <= 1'b0; 
             
-            case (id_ex_op)
-                4'b0000: ac <= id_ex_ac & data_in;       // AND: Bitwise AND memory with AC
-                4'b0001: ac <= id_ex_ac + data_in;       // ADD: Add memory to AC
-                4'b0010: ac <= data_in;                  // LDA: Load memory into AC
-                4'b0011: begin                           // STA: Store AC into memory
-                            data_out      <= id_ex_ac;
-                            data_write_en <= 1'b1;
-                         end
-                // Future subphases will handle Branching (BUN, BSA) and Indirect Addressing
-                default: ; // Do nothing for unimplemented opcodes yet
-            endcase
+            // Actually update the AC register with the calculated value
+            ac <= next_ac; 
+
+            // Handle memory writes (STA)
+            if (id_ex_op == 4'b0011) begin
+                data_out      <= id_ex_ac;
+                data_write_en <= 1'b1;
+            end
         end
     end
 
