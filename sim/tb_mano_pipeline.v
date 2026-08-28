@@ -69,9 +69,11 @@ module tb_mano_pipeline();
     // --------------------------------------------------------
     // MOCK DATA MEMORY (RAM)
     // --------------------------------------------------------
-    reg [15:0] ram [0:255]; // 256-word memory array for testing
+    // FIXED: Increased memory array bounds to the full 4096-word address space 
+    // to prevent strict XSim out-of-bounds compilation crashes.
+    reg [15:0] ram [0:4095]; 
 
-    // Synchronous Write, Asynchronous Read (matches typical FPGA Block RAM behavior)
+    // Synchronous Write, Asynchronous Read (matches typical FPGA Block RAM)
     always @(posedge clk) begin
         if (data_write_en) begin
             ram[data_addr] <= data_out;
