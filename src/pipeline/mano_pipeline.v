@@ -141,7 +141,7 @@ module mano_pipeline (
             id_ex_pc     <= if_id_pc;
             id_ex_op     <= if_id_ir[15:12]; // Note: Bit 15 is the I-bit. We isolate 14:12 in a full build.
             id_ex_addr   <= if_id_ir[11:0];
-            data_addr    <= if_id_ir[11:0];
+            data_addr    <= if_id_ir[11:0]; // Set up the READ address for whatever's just entering decode.
             data_read_en <= 1'b1;
 
             // ------------------------------------------------
@@ -151,16 +151,29 @@ module mano_pipeline (
             data_write_en <= 1'b0;
 
             // Handle Memory Writes (STA, BSA, ISZ)
+            //
+            // BUG FIX: data_addr was just overwritten above (Stage 2) with the
+            // address of whatever instruction is now entering decode - NOT the
+            // address this write instruction actually needs. Since data_write_en
+            // and data_out only become visible next cycle (same as data_addr's
+            // update above), the write would otherwise land at the wrong address.
+            // Re-driving data_addr here with id_ex_addr (this instruction's own
+            // operand address, latched back when IT was in decode) overrides
+            // Stage 2's assignment for this cycle, so address and write-enable
+            // change together, pointing at the correct location.
             if (id_ex_op == 4'b0011) begin      // STA
+                data_addr     <= id_ex_addr;
                 data_out      <= id_ex_ac;
                 data_write_en <= 1'b1;
             end
             else if (id_ex_op == 4'b0101) begin // BSA
+                data_addr     <= id_ex_addr;
                 data_out      <= {4'b0000, id_ex_pc + 12'b1};
                 data_write_en <= 1'b1;
             end
             else if (id_ex_op == 4'b0110) begin // ISZ
                 // Write the incremented value back to memory regardless of whether we skip or not
+                data_addr     <= id_ex_addr;
                 data_out      <= isz_incremented;
                 data_write_en <= 1'b1;
             end
