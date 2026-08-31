@@ -63,10 +63,17 @@ module tb_mano_pipeline();
             // Target of Branch
             12'h006: inst_data = 16'h2102; // LDA 102 (Verify stored data, AC should be 35)
 
-            // Test 3: Register-Reference Instructions (CLA, CMA, INC)
+            // Test 3: Register-Reference Instructions - AC-only ops (CLA, CMA, INC)
             12'h007: inst_data = 16'h7800; // CLA (AC <- 0)
             12'h008: inst_data = 16'h7200; // CMA (AC <- AC' = 0xFFFF)
             12'h009: inst_data = 16'h7020; // INC (AC <- AC + 1 = 0x0000, wraps)
+
+            // Test 4: Register-Reference Instructions - E register ops (CIR, CIL, CLE, CME)
+            12'h00a: inst_data = 16'h7200; // CMA (AC <- AC' = 0xFFFF, sets up a known pattern)
+            12'h00b: inst_data = 16'h7080; // CIR (AC <- 0x7FFF, E <- 1)
+            12'h00c: inst_data = 16'h7040; // CIL (AC <- 0xFFFF, E <- 0)
+            12'h00d: inst_data = 16'h7400; // CLE (E <- 0, no visible change - already 0)
+            12'h00e: inst_data = 16'h7100; // CME (E <- E' = 1)
 
             default: inst_data = 16'h0000; // NOP
         endcase
@@ -99,6 +106,8 @@ module tb_mano_pipeline();
     // --------------------------------------------------------
     initial begin
         // Initialize Test RAM Data
+        ram[12'h000] = 16'd0;  // Trailing NOPs (opcode AND 000) read this - keep it
+                                // defined so the tail end of the run doesn't pick up X.
         ram[12'h100] = 16'd10; // Value for LDA
         ram[12'h101] = 16'd25; // Value for ADD (Expected AC result: 35)
 
@@ -107,10 +116,12 @@ module tb_mano_pipeline();
         #20;
         reset = 0;
 
-        // Live visibility: prints pc/ac whenever either changes.
-        // Expect ac to move ...0023 (35) -> 0000 -> ffff -> 0000
-        // as CLA, CMA, INC execute in sequence.
-        $monitor("t=%0t | pc=%h | ac=%h", $time, uut.pc, uut.ac);
+        // Live visibility: prints pc/ac/e whenever any of them change.
+        // Expect ac: ...0023 (35) -> 0000 -> ffff -> 0000 (CLA/CMA/INC)
+        //        then ffff -> 7fff -> ffff -> ffff -> ffff (CMA/CIR/CIL/CLE/CME)
+        // Expect e:  0 -> 0 -> 0 -> 0 (unaffected by CLA/CMA/INC)
+        //        then 0 -> 1 -> 0 -> 0 -> 1 (CMA/CIR/CIL/CLE/CME)
+        $monitor("t=%0t | pc=%h | ac=%h | e=%b", $time, uut.pc, uut.ac, uut.e);
 
         // Let pipeline run long enough to process the full test program
         #200;
