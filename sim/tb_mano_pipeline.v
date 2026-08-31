@@ -75,6 +75,38 @@ module tb_mano_pipeline();
             12'h00d: inst_data = 16'h7400; // CLE (E <- 0, no visible change - already 0)
             12'h00e: inst_data = 16'h7100; // CME (E <- E' = 1)
 
+            // Test 5: Register-Reference Instructions - conditional skips (SPA, SNA, SZA, SZE)
+            // 00f: CLA          -> AC=0
+            // 010: SZA          -> AC==0, so SKIP next (011)
+            // 011: CMA (should be skipped - if not, AC would become 0xFFFF)
+            // 012: INC          -> AC=1 (proves 011 was skipped: 0+1=1, not 0xFFFF+1=0)
+            // 013: SPA          -> AC=1 is positive, so SKIP next (014)
+            // 014: CLA (should be skipped)
+            // 015: INC          -> AC=2 (proves 014 was skipped)
+            // 016: CMA          -> AC=0xFFFD (negative)
+            // 017: SNA          -> AC is negative, so SKIP next (018)
+            // 018: CLA (should be skipped)
+            // 019: INC          -> AC=0xFFFE (proves 018 was skipped)
+            // 01a: CLE          -> E=0
+            // 01b: SZE          -> E==0, so SKIP next (01c)
+            // 01c: CLA (should be skipped)
+            // 01d: INC          -> AC=0xFFFF (proves 01c was skipped)
+            12'h00f: inst_data = 16'h7800; // CLA
+            12'h010: inst_data = 16'h7004; // SZA
+            12'h011: inst_data = 16'h7200; // CMA (skipped)
+            12'h012: inst_data = 16'h7020; // INC
+            12'h013: inst_data = 16'h7010; // SPA
+            12'h014: inst_data = 16'h7800; // CLA (skipped)
+            12'h015: inst_data = 16'h7020; // INC
+            12'h016: inst_data = 16'h7200; // CMA
+            12'h017: inst_data = 16'h7008; // SNA
+            12'h018: inst_data = 16'h7800; // CLA (skipped)
+            12'h019: inst_data = 16'h7020; // INC
+            12'h01a: inst_data = 16'h7400; // CLE
+            12'h01b: inst_data = 16'h7002; // SZE
+            12'h01c: inst_data = 16'h7800; // CLA (skipped)
+            12'h01d: inst_data = 16'h7020; // INC
+
             default: inst_data = 16'h0000; // NOP
         endcase
     end
@@ -117,14 +149,11 @@ module tb_mano_pipeline();
         reset = 0;
 
         // Live visibility: prints pc/ac/e whenever any of them change.
-        // Expect ac: ...0023 (35) -> 0000 -> ffff -> 0000 (CLA/CMA/INC)
-        //        then ffff -> 7fff -> ffff -> ffff -> ffff (CMA/CIR/CIL/CLE/CME)
-        // Expect e:  0 -> 0 -> 0 -> 0 (unaffected by CLA/CMA/INC)
-        //        then 0 -> 1 -> 0 -> 0 -> 1 (CMA/CIR/CIL/CLE/CME)
+        // Expect ac (test 5, tail end): 0000 -> 0001 -> 0002 -> fffd -> fffe -> ffff
         $monitor("t=%0t | pc=%h | ac=%h | e=%b", $time, uut.pc, uut.ac, uut.e);
 
         // Let pipeline run long enough to process the full test program
-        #200;
+        #400;
 
         // Stop simulation
         $finish;

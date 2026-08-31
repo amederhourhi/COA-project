@@ -29,12 +29,14 @@ module mano_pipeline (
     // ========================================================
     reg [15:0] if_id_ir;
     reg [11:0] if_id_pc;
+    reg        if_id_valid; // 0 = nothing real was fetched into this slot (post-flush bubble)
 
     reg [15:0] id_ex_ac;
-    reg        id_ex_e;   // Forwarded E value, mirrors id_ex_ac's forwarding role
+    reg        id_ex_e;    // Forwarded E value, mirrors id_ex_ac's forwarding role
     reg [3:0]  id_ex_op;
     reg [11:0] id_ex_addr;
     reg [11:0] id_ex_pc;
+    reg        id_ex_valid; // 0 = this slot is a bubble - ignore it entirely in EXECUTE
 
     // ========================================================
     // REGISTER-REFERENCE INSTRUCTION BIT MAP (opcode = 3'b111)
@@ -51,10 +53,10 @@ module mano_pipeline (
     localparam RR_CIR = 7;  // Circular shift AC right through E
     localparam RR_CIL = 6;  // Circular shift AC left through E
     localparam RR_INC = 5;  // AC <- AC + 1
-    localparam RR_SPA = 4;  // Skip next instr if AC positive    (subphase 1.3)
-    localparam RR_SNA = 3;  // Skip next instr if AC negative    (subphase 1.3)
-    localparam RR_SZA = 2;  // Skip next instr if AC is zero     (subphase 1.3)
-    localparam RR_SZE = 1;  // Skip next instr if E is zero      (subphase 1.3)
+    localparam RR_SPA = 4;  // Skip next instr if AC is positive (sign bit 0)
+    localparam RR_SNA = 3;  // Skip next instr if AC is negative (sign bit 1)
+    localparam RR_SZA = 2;  // Skip next instr if AC is zero
+    localparam RR_SZE = 1;  // Skip next instr if E is zero
     localparam RR_HLT = 0;  // Halt the machine                  (subphase 1.4)
 
     // ========================================================
@@ -74,6 +76,12 @@ module mano_pipeline (
         next_ac       = ac; // Default to not changing AC
         next_e        = e;  // Default to not changing E
 
+        // A bubble (id_ex_valid == 0) carries garbage left over in id_ex_op /
+        // id_ex_addr / id_ex_ac from whatever used to occupy this pipeline slot
+        // before a flush. Gate the whole case on validity so a bubble always
+        // produces "do nothing" (the defaults above) instead of accidentally
+        // being misread as a real instruction (e.g. all-zero bits look like AND).
+        if (id_ex_valid) begin
         case (id_ex_op)
             4'b0000: next_ac = id_ex_ac & data_in; // AND
             4'b0001: next_ac = id_ex_ac + data_in; // ADD
@@ -99,8 +107,26 @@ module mano_pipeline (
                     next_ac = {id_ex_ac[14:0], id_ex_e};
                     next_e  = id_ex_ac[15];
                 end
-                // RR_SPA / RR_SNA / RR_SZA / RR_SZE handled in subphase 1.3 (control hazard)
-                // RR_HLT                            handled in subphase 1.4 (halt state)
+                // Conditional skips: identical mechanism to ISZ's skip below -
+                // jump 2 instructions ahead of this one's own fetch address
+                // instead of the usual 1, so the very next instruction is skipped.
+                if (id_ex_addr[RR_SPA] && id_ex_ac[15] == 1'b0) begin // AC positive
+                    branch_taken  = 1'b1;
+                    branch_target = id_ex_pc + 12'd2;
+                end
+                if (id_ex_addr[RR_SNA] && id_ex_ac[15] == 1'b1) begin // AC negative
+                    branch_taken  = 1'b1;
+                    branch_target = id_ex_pc + 12'd2;
+                end
+                if (id_ex_addr[RR_SZA] && id_ex_ac == 16'b0) begin    // AC is zero
+                    branch_taken  = 1'b1;
+                    branch_target = id_ex_pc + 12'd2;
+                end
+                if (id_ex_addr[RR_SZE] && id_ex_e == 1'b0) begin      // E is zero
+                    branch_taken  = 1'b1;
+                    branch_target = id_ex_pc + 12'd2;
+                end
+                // RR_HLT handled in subphase 1.4 (halt state)
             end
 
             4'b0100: begin                         // BUN
@@ -120,6 +146,7 @@ module mano_pipeline (
             end
             default: next_ac = ac;
         endcase
+        end
     end
 
     // ========================================================
@@ -132,27 +159,39 @@ module mano_pipeline (
             e             <= 1'b0;
             if_id_ir      <= 16'b0;
             if_id_pc      <= 12'b0;
+            if_id_valid   <= 1'b0;
             id_ex_ac      <= 16'b0;
             id_ex_e       <= 1'b0;
             id_ex_op      <= 4'b0;
             id_ex_addr    <= 12'b0;
             id_ex_pc      <= 12'b0;
+            id_ex_valid   <= 1'b0;
             data_addr     <= 12'b0;
             data_read_en  <= 1'b0;
             data_write_en <= 1'b0;
         end else if (branch_taken) begin
-            // PIPELINE FLUSH for BUN, BSA, and ISZ skips
+            // PIPELINE FLUSH for BUN, BSA, ISZ skips, and the register-reference
+            // skips (SPA/SNA/SZA/SZE). Two bubble slots are needed here, not one:
+            // this cycle invalidates the FETCH slot that's about to be latched
+            // (if_id_valid), and next cycle that bubble flows forward and
+            // invalidates the DECODE->EXECUTE slot too (id_ex_valid <= if_id_valid,
+            // down in the else branch). Without tracking both, a flush's leftover
+            // zeroed instruction word gets misread as a real (bogus) AND and
+            // silently corrupts AC for a cycle.
             pc            <= branch_target;
             if_id_ir      <= 16'b0;
+            if_id_valid   <= 1'b0;
             id_ex_op      <= 4'b0;
+            id_ex_valid   <= 1'b0;
             data_write_en <= 1'b0;
         end else begin
             // ------------------------------------------------
             // STAGE 1: FETCH
             // ------------------------------------------------
-            if_id_ir <= inst_data;
-            if_id_pc <= pc;
-            pc       <= pc + 1;
+            if_id_ir    <= inst_data;
+            if_id_pc    <= pc;
+            if_id_valid <= 1'b1; // A real instruction was just fetched this cycle
+            pc          <= pc + 1;
 
             // ------------------------------------------------
             // STAGE 2: DECODE
@@ -162,7 +201,8 @@ module mano_pipeline (
             id_ex_pc     <= if_id_pc;
             id_ex_op     <= if_id_ir[15:12]; // Note: Bit 15 is the I-bit. We isolate 14:12 in a full build.
             id_ex_addr   <= if_id_ir[11:0];
-            data_addr    <= if_id_ir[11:0]; // Set up the READ address for whatever's just entering decode.
+            id_ex_valid  <= if_id_valid;     // Only genuinely valid if if_id_ir held a real fetch
+            data_addr    <= if_id_ir[11:0];  // Set up the READ address for whatever's just entering decode.
             data_read_en <= 1'b1;
 
             // ------------------------------------------------
