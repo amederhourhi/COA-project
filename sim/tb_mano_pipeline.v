@@ -135,7 +135,7 @@ module tb_mano_pipeline();
 
     // --------------------------------------------------------
     // SIMULATION SEQUENCE
-    // --------------------------------------------------------
+    // --------------------------------------------------------`
     initial begin
         // Initialize Test RAM Data
         ram[12'h000] = 16'd0;  // Trailing NOPs (opcode AND 000) read this - keep it
